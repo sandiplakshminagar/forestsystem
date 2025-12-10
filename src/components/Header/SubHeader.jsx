@@ -72,7 +72,7 @@ export default function SubHeader() {
                   }}
                 />
               }
-              label="Burned Forest"
+              label="Fire Forest"
             />
           </RadioGroup>
         </div>

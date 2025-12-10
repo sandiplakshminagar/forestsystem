@@ -1,0 +1,100 @@
+[
+  {
+    "district": "Bhandara",
+    "burned_km2": 0,
+    "encroach_km2": 0.096,
+    "fire_bio_km2": 0,
+    "fire_risk_km2": 0,
+    "year": 2020
+  },
+  {
+    "district": "Chandrapur",
+    "burned_km2": 8.18,
+    "encroach_km2": 0,
+    "fire_bio_km2": 16.36,
+    "fire_risk_km2": 3.75,
+    "year": 2020
+  },
+  {
+    "district": "Gadchiroli",
+    "burned_km2": 336.38,
+    "encroach_km2": 49.49,
+    "fire_bio_km2": 353.7,
+    "fire_risk_km2": 96.17,
+    "year": 2020
+  },
+  {
+    "district": "Gondia",
+    "burned_km2": 4.15,
+    "encroach_km2": 4.89,
+    "fire_bio_km2": 8.31,
+    "fire_risk_km2": 1.33,
+    "year": 2020
+  },
+
+  {
+    "district": "Bhandara",
+    "burned_km2": 14.82,
+    "encroach_km2": 0.096,
+    "fire_bio_km2": 29.64,
+    "fire_risk_km2": 5.02,
+    "year": 2021
+  },
+  {
+    "district": "Chandrapur",
+    "burned_km2": 763.49,
+    "encroach_km2": 0,
+    "fire_bio_km2": 1518.87,
+    "fire_risk_km2": 289.49,
+    "year": 2021
+  },
+  {
+    "district": "Gadchiroli",
+    "burned_km2": 2417.79,
+    "encroach_km2": 44.28,
+    "fire_bio_km2": 3470.19,
+    "fire_risk_km2": 744.83,
+    "year": 2021
+  },
+  {
+    "district": "Gondia",
+    "burned_km2": 254.62,
+    "encroach_km2": 3.96,
+    "fire_bio_km2": 509.25,
+    "fire_risk_km2": 91.04,
+    "year": 2021
+  },
+
+  {
+    "district": "Bhandara",
+    "burned_km2": 11.37,
+    "encroach_km2": 0.096,
+    "fire_bio_km2": 22.74,
+    "fire_risk_km2": 4.17,
+    "year": 2022
+  },
+  {
+    "district": "Chandrapur",
+    "burned_km2": 338.91,
+    "encroach_km2": 0,
+    "fire_bio_km2": 667.45,
+    "fire_risk_km2": 126.96,
+    "year": 2022
+  },
+  {
+    "district": "Gadchiroli",
+    "burned_km2": 1304.02,
+    "encroach_km2": 38.14,
+    "fire_bio_km2": 1851.45,
+    "fire_risk_km2": 390.52,
+    "year": 2022
+  },
+  {
+    "district": "Gondia",
+    "burned_km2": 179.61,
+    "encroach_km2": 2.83,
+    "fire_bio_km2": 359.23,
+    "fire_risk_km2": 62.57,
+    "year": 2022
+  }
+]

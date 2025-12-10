@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState, useMemo } from "react";
 import { useMapContext } from "../MapContext";
 
@@ -14,7 +13,6 @@ import GeoJSON from "ol/format/GeoJSON.js";
 import { Style, Stroke, Fill } from "ol/style.js";
 import { fromLonLat } from "ol/proj.js";
 import { defaults as defaultControls, Zoom } from "ol/control";
-
 
 export default function MapComponent() {
   const { selectedLayer, selectedYears } = useMapContext();
@@ -54,17 +52,14 @@ export default function MapComponent() {
           url: "https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
         }),
       }),
-    white: () => 
+    white: () =>
       new TileLayer({
         source: new XYZ({
           url: "https://basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
-         
         }),
-      })
-    
+      }),
   };
-
-  // ---------------- Create ALL layers ONCE using useMemo ----------------
+  //---------------- Create ALL layers ONCE using useMemo ----------------
   const layers = useMemo(() => {
     // District boundary layer
     const boundary = new VectorLayer({
@@ -80,24 +75,38 @@ export default function MapComponent() {
 
     // FOREST COVER
     const forest = {
-      2000: new TileLayer({
-        source: new TileWMS({
-          url: baseURL,
-          params: {
-            LAYERS: "ForestDashboard:ForestCover_2000",
-            TRANSPARENT: true,
-          },
+      2000: Object.assign(
+        new TileLayer({
+          source: new TileWMS({
+            url: baseURL,
+            params: {
+              LAYERS: "ForestDashboard:ForestCover_2000",
+              TILED: true,
+              FORMAT: "image/png",
+              TRANSPARENT: true,
+            },
+            serverType: "geoserver",
+          }),
+          opacity: 0.7,
         }),
-        opacity: 0.7,
-      }),
+        {
+          legendTitle: "Forest Cover (2000)",
+          legendUrl:
+            baseURL +
+            "?service=WMS&request=GetLegendGraphic&format=image/png&layer=ForestDashboard:ForestCover_2000",
+        }
+      ),
 
       2020: new TileLayer({
         source: new TileWMS({
           url: baseURL,
           params: {
             LAYERS: "ForestDashboard:ForestCover_2020",
+            TILED: true,
+            FORMAT: "image/png",
             TRANSPARENT: true,
           },
+          serverType: "geoserver",
         }),
         opacity: 0.7,
       }),
@@ -107,8 +116,11 @@ export default function MapComponent() {
           url: baseURL,
           params: {
             LAYERS: "ForestDashboard:ForestCover_2021",
+            TILED: true,
+            FORMAT: "image/png",
             TRANSPARENT: true,
           },
+          serverType: "geoserver",
         }),
         opacity: 0.7,
       }),
@@ -118,13 +130,15 @@ export default function MapComponent() {
           url: baseURL,
           params: {
             LAYERS: "ForestDashboard:ForestCover_2022",
+            TILED: true,
+            FORMAT: "image/png",
             TRANSPARENT: true,
           },
+          serverType: "geoserver",
         }),
         opacity: 0.7,
       }),
     };
-
     // TREE ENCROACHMENT
     const encroachment = {
       2020: new TileLayer({
@@ -132,8 +146,11 @@ export default function MapComponent() {
           url: baseURL,
           params: {
             LAYERS: "ForestDashboard:MH4Dist_Encroachment_2020",
+            TILED: true,
+            FORMAT: "image/png",
             TRANSPARENT: true,
           },
+          serverType: "geoserver",
         }),
         opacity: 0.7,
       }),
@@ -143,8 +160,11 @@ export default function MapComponent() {
           url: baseURL,
           params: {
             LAYERS: "ForestDashboard:MH4Dist_Encroachment_2021",
+            TILED: true,
+            FORMAT: "image/png",
             TRANSPARENT: true,
           },
+          serverType: "geoserver",
         }),
         opacity: 0.7,
       }),
@@ -154,13 +174,15 @@ export default function MapComponent() {
           url: baseURL,
           params: {
             LAYERS: "ForestDashboard:MH4Dist_Encroachment_2022",
+            TILED: true,
+            FORMAT: "image/png",
             TRANSPARENT: true,
           },
+          serverType: "geoserver",
         }),
         opacity: 0.7,
       }),
     };
-
     // FOREST FIRE
     const fire = {
       2020: new TileLayer({
@@ -168,8 +190,11 @@ export default function MapComponent() {
           url: baseURL,
           params: {
             LAYERS: "ForestDashboard:MH4Dist_burned_forest_2020",
+            TILED: true,
+            FORMAT: "image/png",
             TRANSPARENT: true,
           },
+          serverType: "geoserver",
         }),
         opacity: 0.7,
       }),
@@ -179,8 +204,11 @@ export default function MapComponent() {
           url: baseURL,
           params: {
             LAYERS: "ForestDashboard:MH4Dist_burned_forest_2021",
+            TILED: true,
+            FORMAT: "image/png",
             TRANSPARENT: true,
           },
+          serverType: "geoserver",
         }),
         opacity: 0.7,
       }),
@@ -189,9 +217,11 @@ export default function MapComponent() {
         source: new TileWMS({
           url: baseURL,
           params: {
-            LAYERS: "ForestDashboard:MH4Dist_burned_forest_2022",
+            TILED: true,
+            FORMAT: "image/png",
             TRANSPARENT: true,
           },
+          serverType: "geoserver",
         }),
         opacity: 0.7,
       }),
@@ -200,35 +230,60 @@ export default function MapComponent() {
         source: new TileWMS({
           url: baseURL,
           params: {
-            // LAYERS: "ForestDashboard:MH_4Dist_FireFrequency_2019_2023",
+            LAYERS: "ForestDashboard:MH_4Dist_FireFrequency_2019_2023",
+            TILED: true,
+            FORMAT: "image/png",
             TRANSPARENT: true,
           },
+          serverType: "geoserver",
         }),
-        opacity: 0.7,
+
+        visible: false,
       }),
 
       pressure: new TileLayer({
         source: new TileWMS({
           url: baseURL,
           params: {
-            // LAYERS: "ForestDashboard:MH_4Dist_HumanPressure_gHM",
+            LAYERS: "ForestDashboard:MH_4Dist_HumanPressure_gHM",
+            TILED: true,
+            FORMAT: "image/png",
             TRANSPARENT: true,
           },
+          serverType: "geoserver",
         }),
-        opacity: 0.7,
+
+        visible: false,
       }),
     };
 
+    boundary.setZIndex(999);
+    // Burned forest layers (high)
+    Object.keys(fire).forEach((key) => {
+      if (["2020", "2021", "2022"].includes(key)) {
+        fire[key].setZIndex(400);
+      }
+    });
+    // Encroachment below burned
+    Object.values(encroachment).forEach((layer) => layer.setZIndex(300));
+
+    // Human Pressure (third)
+    fire.pressure.setZIndex(250);
+
+    // Fire Frequency (second last)
+    fire.frequency.setZIndex(200);
+
+    // Forest layers (bottom)
+    Object.values(forest).forEach((layer) => layer.setZIndex(100));
+
+    // Return layers
     return { boundary, forest, encroachment, fire };
   }, []);
-
   // ---------------- Initialize map ONLY ONCE ----------------
   useEffect(() => {
-   if (!mapRef.current || mapRef.current._initialized) return;
-   mapRef.current._initialized = true;
-
+    if (!mapRef.current || mapRef.current._initialized) return;
+    mapRef.current._initialized = true;
     const base = baseLayers.osm();
-
     const mapObj = new Map({
       target: mapRef.current,
       controls: defaultControls({
@@ -248,11 +303,18 @@ export default function MapComponent() {
       ],
       view: new View({
         center: fromLonLat([78.9629, 20.5937]),
-        zoom: 8,
+        zoom: 7,
       }),
     });
+    const extend = layers.boundary.getSource();
+    extend.once("featuresloadend", () => {
+      const extent = extend.getExtent();
+      mapObj.getView().fit(extent, {
+        padding: [30, 20, 30, 20],
+      });
+    });
 
-      setCurrentBaseLayer(base);
+    setCurrentBaseLayer(base);
     setMap(mapObj);
   }, [map, layers]);
 
@@ -260,47 +322,53 @@ export default function MapComponent() {
   useEffect(() => {
     if (!map) return;
 
-    // Hide all layers
-    Object.values(layers.forest).forEach((l) => l.setVisible(false));
-    Object.values(layers.encroachment).forEach((l) => l.setVisible(false));
-    Object.values(layers.fire).forEach((l) => l.setVisible(false));
+    // Hide all years EXCEPT manual panel layers
+    Object.entries(layers.forest).forEach(([year, layer]) => {
+      if (year !== "2000") layer.setVisible(false);
+    });
 
-    //  Forest Cover
-    if (selectedLayer === "forest-cover") {
-      if (selectedYears.length === 0) {
-        layers.forest["2000"].setVisible(true);
-      } else {
-        selectedYears.forEach((y) => layers.forest[y]?.setVisible(true));
+    Object.entries(layers.encroachment).forEach(([year, layer]) => {
+      layer.setVisible(false);
+    });
+
+    Object.entries(layers.fire).forEach(([key, layer]) => {
+      if (key !== "frequency" && key !== "pressure") {
+        layer.setVisible(false);
       }
+    });
+
+    // --- Forest Cover selection ---
+    if (selectedLayer === "forest-cover") {
+      selectedYears.forEach((y) => {
+        if (y !== "2000") layers.forest[y]?.setVisible(true);
+      });
     }
 
-    // 2 Encroachment
+    // --- Encroachment ---
     if (selectedLayer === "Encroachment") {
       selectedYears.forEach((y) => layers.encroachment[y]?.setVisible(true));
     }
 
-    //Fire Layers
+    // --- Burned Forest ---
     if (selectedLayer === "Burned Forest") {
-      selectedYears.forEach((y) => layers.fire[y]?.setVisible(true));
-      layers.fire.frequency.setVisible(true); // Always ON for fire
+      selectedYears.forEach((y) => {
+        layers.fire[y]?.setVisible(true);
+      });
     }
   }, [selectedLayer, selectedYears, map, layers]);
 
   // ---------------- Basemap Switcher ----------------
   function switchBasemap(name) {
     if (!map) return;
-
     const newBase = baseLayers[name]();
-
     map.removeLayer(currentBaseLayer);
     map.getLayers().insertAt(0, newBase);
-
     setCurrentBaseLayer(newBase);
   }
 
   return (
     <div className="relative w-full h-[calc(100vh-163px)]">
-      <div className="absolute right-4 top-4 z-10 bg-[#eff8f9] px-2 py-1 rounded shadow">
+      <div className="absolute right-6 top-40 z-10 text-sm bg-[#eff8f9] px-1 py-1 rounded shadow">
         <select
           onChange={(e) => switchBasemap(e.target.value)}
           className="bg-[#eff8f9] text-gray-900 px-3 py-1 rounded
@@ -323,6 +391,44 @@ export default function MapComponent() {
         </select>
       </div>
 
+      {/* LAYER PANEL (Top-Right) */}
+      <div className="absolute right-7 top-10 z-30 bg-[#eff8f9] p-3 rounded shadow-md w-35">
+        <strong className="block mb-1">Map Layers</strong>
+
+        {/* Forest Cover 2000 */}
+        <label className="flex items-center gap-2 text-xs mb-1 ">
+          <input
+            type="checkbox"
+            defaultChecked={true}
+            onChange={(e) => layers.forest["2000"].setVisible(e.target.checked)}
+          />
+          Forest 2000
+        </label>
+
+        {/* Fire Frequency */}
+        <label className="flex items-center gap-2 text-xs mb-1">
+          <input
+            type="checkbox"
+            defaultChecked={false}
+            onChange={(e) => {
+              layers.fire.frequency.setVisible(e.target.checked);
+            }}
+          />
+          Fire Frequency
+        </label>
+
+        {/* Human Pressure */}
+        <label className="flex items-center gap-2 text-xs mb-1">
+          <input
+            type="checkbox"
+            defaultChecked={false}
+            onChange={(e) => {
+              layers.fire.pressure.setVisible(e.target.checked);
+            }}
+          />
+          Human Pressure
+        </label>
+      </div>
       {/* Footer Text (Powered by ML Infomap) */}
       <div
         className="
