@@ -5,10 +5,12 @@ import { useMapContext } from "../MapContext";
 export default function SubHeader() {
   const { selectedLayer, setSelectedLayer, selectedYears, setSelectedYears } =
     useMapContext();
-
   const years = ["2020", "2021", "2022"];
+
   const handleLayerChange = (e) => {
     setSelectedLayer(e.target.value);
+    setSelectedYears([]);
+
   };
 
   const toggleYear = (year) => {

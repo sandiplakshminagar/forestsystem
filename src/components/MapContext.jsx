@@ -5,6 +5,7 @@ const MapContext = createContext();
 export function MapProvider({ children }) {
   const [selectedLayer, setSelectedLayer] = useState("forest-cover");
   const [selectedYears, setSelectedYears] = useState([]);
+  const [selectedDistrict, setSelectedDistrict] = useState("");
 
   return (
     <MapContext.Provider
@@ -13,6 +14,8 @@ export function MapProvider({ children }) {
         setSelectedLayer,
         selectedYears,
         setSelectedYears,
+        selectedDistrict,
+        setSelectedDistrict,
       }}
     >
       {children}

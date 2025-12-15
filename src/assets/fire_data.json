@@ -35,7 +35,7 @@
   {
     "district": "Bhandara",
     "burned_km2": 14.82,
-    "encroach_km2": 0.096,
+    "encroachment_km2": 0.096,
     "fire_bio_km2": 29.64,
     "fire_risk_km2": 5.02,
     "year": 2021

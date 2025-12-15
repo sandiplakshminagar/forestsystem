@@ -15,15 +15,14 @@ import { fromLonLat } from "ol/proj.js";
 import { defaults as defaultControls, Zoom } from "ol/control";
 
 export default function MapComponent() {
-  const { selectedLayer, selectedYears } = useMapContext();
+  const { selectedLayer, selectedYears, selectedDistrict } = useMapContext();
 
   const mapRef = useRef();
   const [map, setMap] = useState(null);
   const [currentBaseLayer, setCurrentBaseLayer] = useState(null);
 
-  const baseURL = "https://mlinfomap.org/geoserver/ForestDashboard/wms";
-
   // ---------------- Basemap Layers ----------------
+  const baseURL = "https://mlinfomap.org/geoserver/ForestDashboard/wms";
   const baseLayers = {
     osm: () =>
       new TileLayer({
@@ -65,13 +64,22 @@ export default function MapComponent() {
     const boundary = new VectorLayer({
       source: new VectorSource({
         url: "https://mlinfomap.org/geoserver/ForestDashboard/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=ForestDashboard:4District&outputFormat=application/json",
-        format: new GeoJSON(),
+
+        format: new GeoJSON({}),
       }),
       style: new Style({
         stroke: new Stroke({ color: "red", width: 2 }),
         // fill: new Fill({ color: "rgba(0, 119, 255, 0.3)" }),
       }),
     });
+
+    const highlightLayer = new VectorLayer({
+      source: new VectorSource(),
+      style: new Style({
+        stroke: new Stroke({ color: "blue", width: 4 }),
+      }),
+    });
+    highlightLayer.setZIndex(2000);
 
     // FOREST COVER
     const forest = {
@@ -97,11 +105,11 @@ export default function MapComponent() {
         }
       ),
 
-      2020: new TileLayer({
+      2022: new TileLayer({
         source: new TileWMS({
           url: baseURL,
           params: {
-            LAYERS: "ForestDashboard:ForestCover_2020",
+            LAYERS: "ForestDashboard:ForestCover_2022",
             TILED: true,
             FORMAT: "image/png",
             TRANSPARENT: true,
@@ -110,7 +118,6 @@ export default function MapComponent() {
         }),
         opacity: 0.7,
       }),
-
       2021: new TileLayer({
         source: new TileWMS({
           url: baseURL,
@@ -124,12 +131,11 @@ export default function MapComponent() {
         }),
         opacity: 0.7,
       }),
-
-      2022: new TileLayer({
+      2020: new TileLayer({
         source: new TileWMS({
           url: baseURL,
           params: {
-            LAYERS: "ForestDashboard:ForestCover_2022",
+            LAYERS: "ForestDashboard:ForestCover_2020",
             TILED: true,
             FORMAT: "image/png",
             TRANSPARENT: true,
@@ -257,27 +263,31 @@ export default function MapComponent() {
       }),
     };
 
+    // Boundary always on top
     boundary.setZIndex(999);
-    // Burned forest layers (high)
-    Object.keys(fire).forEach((key) => {
-      if (["2020", "2021", "2022"].includes(key)) {
-        fire[key].setZIndex(400);
-      }
-    });
-    // Encroachment below burned
-    Object.values(encroachment).forEach((layer) => layer.setZIndex(300));
 
-    // Human Pressure (third)
+    //  Burned Forest (ordered by year)
+    fire["2020"]?.setZIndex(130);
+    fire["2021"]?.setZIndex(120);
+    fire["2022"]?.setZIndex(110);
+
+    //  Encroachment (below burned, ordered)
+    encroachment["2020"]?.setZIndex(150);
+    encroachment["2021"]?.setZIndex(140);
+    encroachment["2022"]?.setZIndex(160);
+
+    //  Human layers
     fire.pressure.setZIndex(250);
+    fire.frequency.setZIndex(90);
 
-    // Fire Frequency (second last)
-    fire.frequency.setZIndex(200);
-
-    // Forest layers (bottom)
-    Object.values(forest).forEach((layer) => layer.setZIndex(100));
+    //  Forest cover (bottom-most, ordered)
+    forest["2000"]?.setZIndex(100);
+    forest["2020"]?.setZIndex(130);
+    forest["2021"]?.setZIndex(120);
+    forest["2022"]?.setZIndex(110);
 
     // Return layers
-    return { boundary, forest, encroachment, fire };
+    return { highlightLayer, boundary, forest, encroachment, fire };
   }, []);
   // ---------------- Initialize map ONLY ONCE ----------------
   useEffect(() => {
@@ -300,6 +310,7 @@ export default function MapComponent() {
         ...Object.values(layers.forest),
         ...Object.values(layers.encroachment),
         ...Object.values(layers.fire),
+        layers.highlightLayer,
       ],
       view: new View({
         center: fromLonLat([78.9629, 20.5937]),
@@ -320,8 +331,9 @@ export default function MapComponent() {
 
   // ---------------- Apply Layer Visibility ----------------
   useEffect(() => {
-    if (!map) return;
+    if (!map || !layers) return;
 
+    // ---------------- Layer Visibility  default for legend on map ----------------
     // Hide all years EXCEPT manual panel layers
     Object.entries(layers.forest).forEach(([year, layer]) => {
       if (year !== "2000") layer.setVisible(false);
@@ -337,25 +349,45 @@ export default function MapComponent() {
       }
     });
 
-    // --- Forest Cover selection ---
+    // Forest Cover
     if (selectedLayer === "forest-cover") {
       selectedYears.forEach((y) => {
         if (y !== "2000") layers.forest[y]?.setVisible(true);
       });
     }
 
-    // --- Encroachment ---
+    // Encroachment
     if (selectedLayer === "Encroachment") {
       selectedYears.forEach((y) => layers.encroachment[y]?.setVisible(true));
     }
 
-    // --- Burned Forest ---
+    // Burned Forest
     if (selectedLayer === "Burned Forest") {
-      selectedYears.forEach((y) => {
-        layers.fire[y]?.setVisible(true);
+      selectedYears.forEach((y) => layers.fire[y]?.setVisible(true));
+    }
+
+    // ----------------Highlight + Zoom ----------------
+  }, [selectedLayer, selectedYears, selectedDistrict, map, layers]);
+  // District highlight + zoom (ONLY when district changes)
+  useEffect(() => {
+    if (!map || !layers || !selectedDistrict) return;
+
+    const features = layers.boundary.getSource().getFeatures();
+    const match = features.find((f) => f.get("district") === selectedDistrict);
+
+    layers.highlightLayer.getSource().clear();
+
+    if (match) {
+      const clone = match.clone();
+      clone.setGeometry(match.getGeometry().clone());
+      layers.highlightLayer.getSource().addFeature(clone);
+
+      //  ZOOM happens ONLY here
+      map.getView().fit(match.getGeometry().getExtent(), {
+        duration: 800,
       });
     }
-  }, [selectedLayer, selectedYears, map, layers]);
+  }, [selectedDistrict, map, layers]);
 
   // ---------------- Basemap Switcher ----------------
   function switchBasemap(name) {
@@ -367,34 +399,26 @@ export default function MapComponent() {
   }
 
   return (
-    <div className="relative w-full h-[calc(100vh-163px)]">
+    //--------------------- this is map container -------------------------------------------/
+    <div className="relative w-full h-[calc(100vh-159px)]">
+      {/*  this is the basemap switcher code */}
       <div className="absolute right-6 top-40 z-10 text-sm bg-[#eff8f9] px-1 py-1 rounded shadow">
         <select
           onChange={(e) => switchBasemap(e.target.value)}
           className="bg-[#eff8f9] text-gray-900 px-3 py-1 rounded
-        border border-[#eff8f9] outline-none cursor-pointer
-        focus:ring-2 focus:ring-[#eff8f9]"
+           border border-[#eff8f9] outline-none cursor-pointer
+           focus:ring-2 focus:ring-[#eff8f9]"
         >
-          <option className="bg-[#eff8f9] text-gray-900" value="osm">
-            OSM Standard
-          </option>
-          <option className="bg-[#eff8f9] text-gray-900" value="satellite">
-            Satellite
-          </option>
-          <option className="bg-[#eff8f9] text-gray-900" value="terrain">
-            Terrain
-          </option>
-          <option className="bg-[#eff8f9] text-gray-900" value="dark">
-            Dark
-          </option>
+          <option value="osm">OSM Standard</option>
+          <option value="satellite">Satellite</option>
+          <option value="terrain">Terrain</option>
+          <option value="dark">Dark</option>
           <option value="white">white</option>
         </select>
       </div>
-
-      {/* LAYER PANEL (Top-Right) */}
+      {/* LAYER PANEL to show the layer mark on the map (Top-Right) */}
       <div className="absolute right-7 top-10 z-30 bg-[#eff8f9] p-3 rounded shadow-md w-35">
         <strong className="block mb-1">Map Layers</strong>
-
         {/* Forest Cover 2000 */}
         <label className="flex items-center gap-2 text-xs mb-1 ">
           <input
@@ -429,6 +453,7 @@ export default function MapComponent() {
           Human Pressure
         </label>
       </div>
+
       {/* Footer Text (Powered by ML Infomap) */}
       <div
         className="
@@ -443,8 +468,9 @@ export default function MapComponent() {
       >
         Powered by ML Infomap
       </div>
-
+      {/** this is map ref for shwoing the map  */}
       <div ref={mapRef} className="w-full h-full"></div>
     </div>
   );
 }
+/**https://github.com/sandiplakshminagar/forestsystem.git */
