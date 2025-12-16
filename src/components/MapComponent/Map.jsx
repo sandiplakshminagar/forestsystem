@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState, useMemo } from "react";
 import { useMapContext } from "../MapContext";
-
 import Map from "ol/Map.js";
 import View from "ol/View.js";
 import TileLayer from "ol/layer/Tile.js";
@@ -15,11 +14,17 @@ import { fromLonLat } from "ol/proj.js";
 import { defaults as defaultControls, Zoom } from "ol/control";
 
 export default function MapComponent() {
-  const { selectedLayer, selectedYears, selectedDistrict } = useMapContext();
+  const { selectedLayer, selectedYears, selectedDistrict }=useMapContext();
 
   const mapRef = useRef();
   const [map, setMap] = useState(null);
   const [currentBaseLayer, setCurrentBaseLayer] = useState(null);
+  // ---------------- DYNAMIC COLOR LEGEND COMPONENT ----------------
+  const YEAR_COLORS = {
+    2020: "#b90024", 
+    2021: "#f600ea", 
+    2022: "#ffc003", 
+  };
 
   // ---------------- Basemap Layers ----------------
   const baseURL = "https://mlinfomap.org/geoserver/ForestDashboard/wms";
@@ -60,6 +65,7 @@ export default function MapComponent() {
   };
   //---------------- Create ALL layers ONCE using useMemo ----------------
   const layers = useMemo(() => {
+    
     // District boundary layer
     const boundary = new VectorLayer({
       source: new VectorSource({
@@ -191,11 +197,42 @@ export default function MapComponent() {
     };
     // FOREST FIRE
     const fire = {
+      //this is old fire-forest Layer with plot shaping//
+
+      //   2020: new TileLayer({
+      //   source: new TileWMS({
+      //     url: baseURL,
+      //     params: {
+      //       LAYERS: "ForestDashboard:MH4Dist_burned_forest_2020",
+      //       TILED: true, FORMAT: "image/png", TRANSPARENT: true,
+      //     }, serverType: "geoserver",
+      //   }), opacity: 0.7,
+      // }),
+      //    2021: new TileLayer({
+      //   source: new TileWMS({
+      //     url: baseURL,
+      //     params: {
+      //       LAYERS: "ForestDashboard:MH4Dist_burned_forest_2021",
+      //       TILED: true, FORMAT: "image/png",
+      //       TRANSPARENT: true,
+      //     }, serverType: "geoserver",
+      //   }), opacity: 0.7,
+      // }),
+      //   2022: new TileLayer({
+      //   source: new TileWMS({
+      //     url: baseURL,
+      //        params: {
+      //       TILED: true,
+      //       FORMAT: "image/png", TRANSPARENT: true,
+      //     }, serverType: "geoserver",
+      //   }), opacity: 0.7,
+      // }),
+
       2020: new TileLayer({
         source: new TileWMS({
           url: baseURL,
           params: {
-            LAYERS: "ForestDashboard:MH4Dist_burned_forest_2020",
+            LAYERS: "ForestDashboard:ForestFire2020",
             TILED: true,
             FORMAT: "image/png",
             TRANSPARENT: true,
@@ -209,7 +246,7 @@ export default function MapComponent() {
         source: new TileWMS({
           url: baseURL,
           params: {
-            LAYERS: "ForestDashboard:MH4Dist_burned_forest_2021",
+            LAYERS: "ForestDashboard:ForestFire2021",
             TILED: true,
             FORMAT: "image/png",
             TRANSPARENT: true,
@@ -223,6 +260,7 @@ export default function MapComponent() {
         source: new TileWMS({
           url: baseURL,
           params: {
+            LAYERS: "ForestDashboard:ForestFire2022",
             TILED: true,
             FORMAT: "image/png",
             TRANSPARENT: true,
@@ -277,8 +315,8 @@ export default function MapComponent() {
     encroachment["2022"]?.setZIndex(160);
 
     //  Human layers
-    fire.pressure.setZIndex(250);
-    fire.frequency.setZIndex(90);
+    fire.pressure.setZIndex(10);
+    fire.frequency.setZIndex(20);
 
     //  Forest cover (bottom-most, ordered)
     forest["2000"]?.setZIndex(100);
@@ -317,6 +355,7 @@ export default function MapComponent() {
         zoom: 7,
       }),
     });
+
     const extend = layers.boundary.getSource();
     extend.once("featuresloadend", () => {
       const extent = extend.getExtent();
@@ -328,6 +367,38 @@ export default function MapComponent() {
     setCurrentBaseLayer(base);
     setMap(mapObj);
   }, [map, layers]);
+  // ---------------- FIRE YEAR LAYERS ANIMATION ----------------
+  // useEffect(() => {
+  //   if (!map || !layers) return;
+
+  //   let opacity = 0.4; // start opacity
+  //   let increasing = true;
+  //   let animationId;
+
+  //   const animateFireYears = () => {
+  //     // Control pulse range
+  //     opacity = increasing ? opacity + 0.03 : opacity - 0.03;
+  //     if (opacity >= 0.8) increasing = false;
+  //     if (opacity <= 0.3) increasing = true;
+
+  //     //  Animate ONLY year-based fire layers
+  //     [2020, 2021, 2022].forEach((year) => {
+  //       const layer = layers.fire[year];
+  //       if (layer && layer.getVisible()) {
+  //         layer.setOpacity(opacity);
+  //       }
+  //     });
+
+  //     animationId = requestAnimationFrame(animateFireYears);
+  //   };
+
+  //   animateFireYears();
+
+  //   // Cleanup on unmount
+  //   return () => {
+  //     if (animationId) cancelAnimationFrame(animationId);
+  //   };
+  // }, [map, layers]);
 
   // ---------------- Apply Layer Visibility ----------------
   useEffect(() => {
@@ -388,6 +459,37 @@ export default function MapComponent() {
       });
     }
   }, [selectedDistrict, map, layers]);
+  // this for making legend on the map  based on the selected layer
+
+  function LayerLegend({ selectedLayer, selectedYears }) {
+    if (!selectedLayer || !selectedYears?.length) return null;
+
+    let heading = "";
+    if (selectedLayer === "forest-cover") heading = "Forest Cover";
+    if (selectedLayer === "Encroachment") heading = "Encroachment";
+    if (selectedLayer === "Burned Forest") heading = "Fire Forest";
+
+    return (
+      <div className="bg-white rounded shadow-md p-1 w-30">
+        {/* Legend Heading */}
+        <h3 className="text-sm font-semibold text-gray-800 mb-2">{heading}</h3>
+
+        {/* Year-wise color legend */}
+        {selectedYears.map((year) => (
+          <div
+            key={year}
+            className="flex items-center gap-2 mb-1 text-sm text-gray-700"
+          >
+            <span
+              className="w-4 h-4 rounded-sm border"
+              style={{ backgroundColor: YEAR_COLORS[year] }}
+            />
+            <span>{year}</span>
+          </div>
+        ))}
+      </div>
+    );
+  }
 
   // ---------------- Basemap Switcher ----------------
   function switchBasemap(name) {
@@ -468,9 +570,34 @@ export default function MapComponent() {
       >
         Powered by ML Infomap
       </div>
+      {/* Dynamic Color Legend */}
+      <div className="absolute left-4 bottom-20 z-30">
+        <LayerLegend
+          selectedLayer={selectedLayer}
+          selectedYears={selectedYears}
+        />
+      </div>
+
       {/** this is map ref for shwoing the map  */}
       <div ref={mapRef} className="w-full h-full"></div>
     </div>
   );
 }
 /**https://github.com/sandiplakshminagar/forestsystem.git */
+/**  remove the selete year dropdown and async the checkboxes to  select the years
+ *  2.show the value based on year chekbox seletion if multiple sletion accumulated  value of years 3. remove the zoom out behavoir on  map when click on the chekboxes 4.added logo and reset the sizing of the header 6. chnage the postion of the layers after giving each layer diffretnt color
+ *
+ */
+// ForestDashboard: ForestFire2020;
+// ForestDashboard: ForestFire2021;
+// ForestDashboard: ForestFire2022;
+
+// new layers of forect cover to show attributes
+
+ /**New Vector layers
+  * 
+  *ForestDashboard:ForestCoverLost2020		
+ForestDashboard:ForestCoverLost2021		
+ForestDashboard:forestcoverlost2022
+  * 
+  */

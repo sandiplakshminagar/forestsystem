@@ -10,15 +10,14 @@ export default function SubHeader() {
   const handleLayerChange = (e) => {
     setSelectedLayer(e.target.value);
     setSelectedYears([]);
-
   };
 
   const toggleYear = (year) => {
+    debugger;
     setSelectedYears((prev) =>
       prev.includes(year) ? prev.filter((y) => y !== year) : [...prev, year]
     );
   };
-
   return (
     <div className="bg-[#eff8f9] border-b shadow-sm">
       <div
@@ -28,9 +27,9 @@ export default function SubHeader() {
       >
         {/* RADIO + YEARS IN ROW */}
         <div className="flex flex-col md:flex-row md:items-center gap-2">
-          <h2 className="text-[#0fa4af] font-semibold text-lg mb-1 md:mb-0">
-            Select Layer
-          </h2>
+        <h2 className="text-[#0fa4af] font-semibold text-lg mb-1 md:mb-0">
+        Select Layer
+        </h2>
 
           <RadioGroup
             row
