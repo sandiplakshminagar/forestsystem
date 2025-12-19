@@ -14,16 +14,16 @@ import { fromLonLat } from "ol/proj.js";
 import { defaults as defaultControls, Zoom } from "ol/control";
 
 export default function MapComponent() {
-  const { selectedLayer, selectedYears, selectedDistrict }=useMapContext();
+  const { selectedLayer, selectedYears, selectedDistrict } = useMapContext();
 
   const mapRef = useRef();
   const [map, setMap] = useState(null);
   const [currentBaseLayer, setCurrentBaseLayer] = useState(null);
   // ---------------- DYNAMIC COLOR LEGEND COMPONENT ----------------
   const YEAR_COLORS = {
-    2020: "#b90024", 
-    2021: "#f600ea", 
-    2022: "#ffc003", 
+    2020: "",
+    2021: "",
+    2022: "",
   };
 
   // ---------------- Basemap Layers ----------------
@@ -65,7 +65,6 @@ export default function MapComponent() {
   };
   //---------------- Create ALL layers ONCE using useMemo ----------------
   const layers = useMemo(() => {
-    
     // District boundary layer
     const boundary = new VectorLayer({
       source: new VectorSource({
@@ -79,15 +78,24 @@ export default function MapComponent() {
       }),
     });
 
-    const highlightLayer = new VectorLayer({
+    const clickHighlightLayer = new VectorLayer({
+      source: new VectorSource(),
+      style: new Style({
+        stroke: new Stroke({ color: "orange", width: 2 }),
+        fill: new Fill({ color: "yellow" }),
+      }),
+    });
+    clickHighlightLayer.setZIndex(2100);
+    const districtHighlightLayer = new VectorLayer({
       source: new VectorSource(),
       style: new Style({
         stroke: new Stroke({ color: "blue", width: 4 }),
       }),
     });
-    highlightLayer.setZIndex(2000);
+    districtHighlightLayer.setZIndex(2000);
 
     // FOREST COVER
+    // ---------------- FOREST COVER LOST VECTOR LAYERS ----------------
     const forest = {
       2000: Object.assign(
         new TileLayer({
@@ -111,46 +119,48 @@ export default function MapComponent() {
         }
       ),
 
-      2022: new TileLayer({
-        source: new TileWMS({
-          url: baseURL,
-          params: {
-            LAYERS: "ForestDashboard:ForestCover_2022",
-            TILED: true,
-            FORMAT: "image/png",
-            TRANSPARENT: true,
-          },
-          serverType: "geoserver",
-        }),
-        opacity: 0.7,
-      }),
-      2021: new TileLayer({
-        source: new TileWMS({
-          url: baseURL,
-          params: {
-            LAYERS: "ForestDashboard:ForestCover_2021",
-            TILED: true,
-            FORMAT: "image/png",
-            TRANSPARENT: true,
-          },
-          serverType: "geoserver",
-        }),
-        opacity: 0.7,
-      }),
       2020: new TileLayer({
         source: new TileWMS({
-          url: baseURL,
+          url: "https://mlinfomap.org/geoserver/ForestDashboard/wms",
           params: {
-            LAYERS: "ForestDashboard:ForestCover_2020",
+            LAYERS: "ForestDashboard:ForestCoverLost2020",
             TILED: true,
             FORMAT: "image/png",
             TRANSPARENT: true,
           },
           serverType: "geoserver",
         }),
+        visible: false,
         opacity: 0.7,
       }),
+
+      // 2020: new VectorLayer({
+      //   source: new VectorSource({
+      //     url: `https://mlinfomap.org/geoserver/ForestDashboard/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=ForestDashboard:ForestCoverLost2020&outputFormat=application/json`,
+      //     format: new GeoJSON(),
+      //   }),
+      //   visible: false,
+      // }),
+
+      2021: new VectorLayer({
+        source: new VectorSource({
+          url: "https://mlinfomap.org/geoserver/ForestDashboard/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=ForestDashboard:ForestCoverLost2021&outputFormat=application/json",
+
+          format: new GeoJSON(),
+        }),
+        visible: false,
+      }),
+
+      2022: new VectorLayer({
+        source: new VectorSource({
+          url: "https://mlinfomap.org/geoserver/ForestDashboard/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=ForestDashboard:forestcoverlost2022&outputFormat=application/json",
+
+          format: new GeoJSON(),
+        }),
+        visible: false,
+      }),
     };
+
     // TREE ENCROACHMENT
     const encroachment = {
       2020: new TileLayer({
@@ -197,36 +207,6 @@ export default function MapComponent() {
     };
     // FOREST FIRE
     const fire = {
-      //this is old fire-forest Layer with plot shaping//
-
-      //   2020: new TileLayer({
-      //   source: new TileWMS({
-      //     url: baseURL,
-      //     params: {
-      //       LAYERS: "ForestDashboard:MH4Dist_burned_forest_2020",
-      //       TILED: true, FORMAT: "image/png", TRANSPARENT: true,
-      //     }, serverType: "geoserver",
-      //   }), opacity: 0.7,
-      // }),
-      //    2021: new TileLayer({
-      //   source: new TileWMS({
-      //     url: baseURL,
-      //     params: {
-      //       LAYERS: "ForestDashboard:MH4Dist_burned_forest_2021",
-      //       TILED: true, FORMAT: "image/png",
-      //       TRANSPARENT: true,
-      //     }, serverType: "geoserver",
-      //   }), opacity: 0.7,
-      // }),
-      //   2022: new TileLayer({
-      //   source: new TileWMS({
-      //     url: baseURL,
-      //        params: {
-      //       TILED: true,
-      //       FORMAT: "image/png", TRANSPARENT: true,
-      //     }, serverType: "geoserver",
-      //   }), opacity: 0.7,
-      // }),
 
       2020: new TileLayer({
         source: new TileWMS({
@@ -325,8 +305,155 @@ export default function MapComponent() {
     forest["2022"]?.setZIndex(110);
 
     // Return layers
-    return { highlightLayer, boundary, forest, encroachment, fire };
+    return {
+      districtHighlightLayer,
+      clickHighlightLayer,
+      boundary,
+      forest,
+      encroachment,
+      fire,
+    };
   }, []);
+
+
+
+  // this pop for vactor layer also highlight the working//
+  useEffect(() => {
+    if (!map || !layers) return;
+    const popupEl = document.getElementById("map-popup");
+    const handleClick = (evt) => {
+      let clickedFeature = null;
+      let clickedLayer = null;
+      map.forEachFeatureAtPixel(evt.pixel, (feature, layer) => {
+        clickedFeature = feature;
+        clickedLayer = layer;
+        return true;
+      });
+
+      // Clicked empty space
+      if (!clickedFeature) {
+        popupEl.classList.add("hidden");
+        layers.clickHighlightLayer.getSource().clear();
+        return;
+      }
+
+      // Show ONLY forest loss layers
+      if (
+        clickedLayer !== layers.forest[2020] &&
+        clickedLayer !== layers.forest[2021] &&
+        clickedLayer !== layers.forest[2022]
+      ) {
+        return;
+      }
+
+      const props = clickedFeature.getProperties();
+
+      // ----------  HIGHLIGHT ----------
+      layers.clickHighlightLayer.getSource().clear();
+
+      const clone = clickedFeature.clone();
+      clone.setGeometry(clickedFeature.getGeometry().clone());
+
+      layers.clickHighlightLayer.getSource().addFeature(clone);
+
+      // ----------  FORMAT VALUES ----------
+
+      // Area → 3 digits after decimal
+      const areaFormatted =
+        props.Area !== undefined ? Number(props.Area).toFixed(3) : "N/A";
+
+      // Date → readable format
+      const dateFormatted = props.DateOfObse
+        ? new Date(props.DateOfObse).toLocaleDateString("en-GB", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+          })
+        : "N/A";
+
+      // ---------- POPUP ----------
+      popupEl.innerHTML = `
+      <b>District:</b> ${props.district || "N/A"}<br/>
+      <b>Area:</b> ${areaFormatted} km² <br/>
+      <b>Date:</b> ${dateFormatted}
+    `;
+
+      popupEl.style.left = evt.pixel[0] + "px";
+      popupEl.style.top = evt.pixel[1] - 10 + "px";
+      popupEl.classList.remove("hidden");
+    };
+
+    map.on("singleclick", handleClick);
+
+    return () => {
+      map.un("singleclick", handleClick);
+    };
+  }, [map, layers]);
+
+
+  // this is for pop vactor to wms layer but doesn't highlight only show infomation //
+  useEffect(() => {
+    if (!map || !layers) return;
+
+    const popupEl = document.getElementById("map-popup");
+
+    const handleClick = (evt) => {
+      popupEl.classList.add("hidden");
+
+      // ONLY for ForestCoverLost2020
+      if (!layers.forest[2020].getVisible()) return;
+
+      const view = map.getView();
+      const viewResolution = view.getResolution();
+
+      const wmsSource = layers.forest[2020].getSource();
+
+      const url = wmsSource.getFeatureInfoUrl(
+        evt.coordinate,
+        viewResolution,
+        view.getProjection(),
+        {
+          INFO_FORMAT: "application/json", // 
+          QUERY_LAYERS: "ForestDashboard:ForestCoverLost2020",
+        }
+      );
+
+      if (!url) return;
+
+      fetch(url)
+        .then((res) => res.json())
+        .then((json) => {
+          if (!json.features || json.features.length === 0) return;
+
+          const props = json.features[0].properties;
+
+          popupEl.innerHTML = `
+          <b>District:</b> ${props.district || "N/A"}<br/>
+          <b>Area:</b> ${
+            props.Area !== undefined ? Number(props.Area).toFixed(3) : "N/A"
+          } km² <br/>
+          <b>Date:</b> ${
+            props.DateOfObse
+              ? new Date(props.DateOfObse).toLocaleDateString("en-GB", {
+                  day: "2-digit",
+                  month: "short",
+                  year: "numeric",
+                })
+              : "N/A"
+          }
+        `;
+
+          popupEl.style.left = evt.pixel[0] + "px";
+          popupEl.style.top = evt.pixel[1] - 10 + "px";
+          popupEl.classList.remove("hidden");
+        });
+    };
+
+    map.on("singleclick", handleClick);
+    return () => map.un("singleclick", handleClick);
+  }, [map, layers]);
+
+
   // ---------------- Initialize map ONLY ONCE ----------------
   useEffect(() => {
     if (!mapRef.current || mapRef.current._initialized) return;
@@ -348,7 +475,8 @@ export default function MapComponent() {
         ...Object.values(layers.forest),
         ...Object.values(layers.encroachment),
         ...Object.values(layers.fire),
-        layers.highlightLayer,
+        layers.districtHighlightLayer,
+        layers.clickHighlightLayer,
       ],
       view: new View({
         center: fromLonLat([78.9629, 20.5937]),
@@ -442,17 +570,18 @@ export default function MapComponent() {
   // District highlight + zoom (ONLY when district changes)
   useEffect(() => {
     if (!map || !layers || !selectedDistrict) return;
-
+    
     const features = layers.boundary.getSource().getFeatures();
     const match = features.find((f) => f.get("district") === selectedDistrict);
+    layers.districtHighlightLayer.getSource().clear();
 
-    layers.highlightLayer.getSource().clear();
 
     if (match) {
       const clone = match.clone();
       clone.setGeometry(match.getGeometry().clone());
-      layers.highlightLayer.getSource().addFeature(clone);
-
+      layers.districtHighlightLayer.getSource().addFeature(clone);
+      layers.clickHighlightLayer.getSource().clear();
+      
       //  ZOOM happens ONLY here
       map.getView().fit(match.getGeometry().getExtent(), {
         duration: 800,
@@ -493,6 +622,7 @@ export default function MapComponent() {
 
   // ---------------- Basemap Switcher ----------------
   function switchBasemap(name) {
+
     if (!map) return;
     const newBase = baseLayers[name]();
     map.removeLayer(currentBaseLayer);
@@ -558,7 +688,7 @@ export default function MapComponent() {
 
       {/* Footer Text (Powered by ML Infomap) */}
       <div
-        className="
+     className="
     absolute bottom-0 left-1/2 -translate-x-1/2
     text-[16px] font-medium text-white
     bg-[#0fa4af]
@@ -577,26 +707,31 @@ export default function MapComponent() {
           selectedYears={selectedYears}
         />
       </div>
+      {/* Popup */}
+      <div
+        id="map-popup"
+        className="absolute bg-white rounded shadow-md p-2 text-xs z-50 hidden"
+      ></div>
 
       {/** this is map ref for shwoing the map  */}
       <div ref={mapRef} className="w-full h-full"></div>
     </div>
   );
 }
+
+
+
 /**https://github.com/sandiplakshminagar/forestsystem.git */
-/**  remove the selete year dropdown and async the checkboxes to  select the years
- *  2.show the value based on year chekbox seletion if multiple sletion accumulated  value of years 3. remove the zoom out behavoir on  map when click on the chekboxes 4.added logo and reset the sizing of the header 6. chnage the postion of the layers after giving each layer diffretnt color
- *
- */
+
 // ForestDashboard: ForestFire2020;
 // ForestDashboard: ForestFire2021;
 // ForestDashboard: ForestFire2022;
 
 // new layers of forect cover to show attributes
 
- /**New Vector layers
+/**New Vector layers for attribute and highlight the region
   * 
-  *ForestDashboard:ForestCoverLost2020		
+ForestDashboard:ForestCoverLost2020		
 ForestDashboard:ForestCoverLost2021		
 ForestDashboard:forestcoverlost2022
   * 
